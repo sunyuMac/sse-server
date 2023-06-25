@@ -63,7 +63,7 @@ func main() {
 	}
 
 	// 注册 SSE 事件流处理器
-	http.HandleFunc("/events", sseHandler)
+	http.HandleFunc("/", sseHandler)
 
 	// 启动订阅 Redis 频道并处理消息
 	go sseServer.subscribeRedisChannel()
