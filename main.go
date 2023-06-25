@@ -69,7 +69,7 @@ func main() {
 	go sseServer.subscribeRedisChannel()
 
 	// 启动服务器
-	log.Println("SSE server is running on :8083")
+	log.Println("SSE server is running on :8085")
 	log.Fatal(http.ListenAndServe(":8083", nil))
 }
 
