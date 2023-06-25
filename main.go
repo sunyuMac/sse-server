@@ -70,7 +70,7 @@ func main() {
 
 	// 启动服务器
 	log.Println("SSE server is running on :8085")
-	log.Fatal(http.ListenAndServe(":8083", nil))
+	log.Fatal(http.ListenAndServe(":8085", nil))
 }
 
 // 注册 SSE 连接
