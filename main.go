@@ -31,7 +31,7 @@ func main() {
 		redisClient: redis.NewClient(&redis.Options{
 			Addr:     "localhost:6379",
 			Password: "", // 密码
-			DB:       0,  // 选择相应的数据库
+			DB:       1,  // 选择相应的数据库
 		}),
 	}
 
@@ -69,8 +69,8 @@ func main() {
 	go sseServer.subscribeRedisChannel()
 
 	// 启动服务器
-	log.Println("SSE server is running on :8082")
-	log.Fatal(http.ListenAndServe(":8082", nil))
+	log.Println("SSE server is running on :8083")
+	log.Fatal(http.ListenAndServe(":8083", nil))
 }
 
 // 注册 SSE 连接
