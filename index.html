@@ -10,7 +10,7 @@
 
   <script>
     // 创建 EventSource 对象
-    const eventSource = new EventSource("http://api.test.huodongpro.com/sse/events?user=201"); // 替换为你的用户ID
+    const eventSource = new EventSource("http://127.0.0.1:8085/events?user=2"); // 替换为你的用户ID
 
     // 监听 SSE 事件
     eventSource.addEventListener("message", function(event) {

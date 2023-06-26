@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"net/http"
 	"sync"
-
-	"github.com/go-redis/redis/v8"
+	"time"
 )
 
 // SSEServer 表示SSE服务器
@@ -68,6 +68,9 @@ func main() {
 	// 启动订阅 Redis 频道并处理消息
 	go sseServer.subscribeRedisChannel()
 
+	// 定时推送空数据到客户端
+	go sseServer.timedPush()
+
 	// 启动服务器
 	log.Println("SSE server is running on :8085")
 	log.Fatal(http.ListenAndServe(":8085", nil))
@@ -91,6 +94,9 @@ func (s *SSEServer) unregisterConnection(userID string) {
 
 // 发送消息给指定用户
 func (s *SSEServer) sendMessageToUser(userID, message string) {
+	//打印发出的消息
+	fmt.Println(message)
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -110,9 +116,22 @@ func (s *SSEServer) subscribeRedisChannel() {
 		// 从 Redis 频道接收到消息
 		_message := Message{}
 		json.Unmarshal([]byte(msg.Payload), &_message)
-
-		fmt.Println(_message)
 		// 发送消息给指定用户
 		s.sendMessageToUser(_message.UserId, msg.Payload)
 	}
+}
+
+// 定时给客户端推送空消息，保持连接
+func (s *SSEServer) timedPush() {
+	// 我们设置的服务器响应超时时间为5分钟，保险起见，每1分钟给客户端推一次空消息用来保持连接
+	for key := range s.connections {
+		// 发送消息给指定用户
+		jsonByte, _ := json.Marshal(Message{
+			key, "test", nil,
+		})
+		s.sendMessageToUser(key, string(jsonByte))
+	}
+	time.Sleep(3 * time.Minute)
+
+	s.timedPush()
 }
