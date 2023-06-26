@@ -13,7 +13,7 @@ import (
 
 // SSEServer SSE服务器
 type SSEServer struct {
-	connections map[string]chan string
+	connections map[string][]chan string
 	mutex       sync.Mutex
 	redisClient *redis.Client
 }
@@ -44,7 +44,7 @@ func main() {
 // initSSE 实例化结构体
 func initSSE() {
 	_sseServer = &SSEServer{
-		connections: make(map[string]chan string),
+		connections: make(map[string][]chan string),
 		redisClient: redis.NewClient(&redis.Options{
 			Addr:     "localhost:6379",
 			Password: "", // 密码
@@ -87,7 +87,8 @@ func (s *SSEServer) registerConnection(userID string, messageChan chan string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.connections[userID] = messageChan
+	//追加链接进入
+	s.connections[userID] = append(s.connections[userID], messageChan)
 }
 
 // 注销 SSE 连接
@@ -100,14 +101,16 @@ func (s *SSEServer) unregisterConnection(userID string) {
 
 // 发送消息给指定用户
 func (s *SSEServer) sendMessageToUser(userID, message string) {
-	//打印发出的消息
-	fmt.Println(message)
-
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if conn, ok := s.connections[userID]; ok {
-		conn <- message
+	if userMap, ok := s.connections[userID]; ok {
+
+		for _, conn := range userMap {
+			conn <- message
+		}
+		//打印发出的消息
+		fmt.Println(message)
 	}
 }
 
@@ -137,7 +140,7 @@ func (s *SSEServer) timedPush() {
 		})
 		s.sendMessageToUser(key, string(jsonByte))
 	}
-	time.Sleep(3 * time.Minute)
+	time.Sleep(10 * time.Second)
 
 	s.timedPush()
 }
