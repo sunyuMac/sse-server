@@ -140,7 +140,7 @@ func (s *SSEServer) timedPush() {
 		})
 		s.sendMessageToUser(key, string(jsonByte))
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(3 * time.Minute)
 
 	s.timedPush()
 }
