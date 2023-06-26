@@ -113,6 +113,6 @@ func (s *SSEServer) subscribeRedisChannel() {
 
 		fmt.Println(_message)
 		// 发送消息给指定用户
-		s.sendMessageToUser(_message.UserId, _message.Event)
+		s.sendMessageToUser(_message.UserId, msg.Payload)
 	}
 }
