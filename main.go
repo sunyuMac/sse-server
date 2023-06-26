@@ -11,12 +11,15 @@ import (
 	"time"
 )
 
-// SSEServer 表示SSE服务器
+// SSEServer SSE服务器
 type SSEServer struct {
 	connections map[string]chan string
 	mutex       sync.Mutex
 	redisClient *redis.Client
 }
+
+// _sseServer sse服务指针
+var _sseServer *SSEServer
 
 // Message 消息
 type Message struct {
@@ -26,7 +29,21 @@ type Message struct {
 }
 
 func main() {
-	sseServer := &SSEServer{
+	initSSE()
+	// 注册 SSE 事件流处理器 http服务
+	http.HandleFunc("/", httpServer)
+	// 启动订阅 Redis 频道并处理消息
+	go _sseServer.subscribeRedisChannel()
+	// 定时推送空数据到客户端
+	go _sseServer.timedPush()
+	// 启动服务器
+	log.Println("SSE server is running on :8085")
+	log.Fatal(http.ListenAndServe(":8085", nil))
+}
+
+// initSSE 实例化结构体
+func initSSE() {
+	_sseServer = &SSEServer{
 		connections: make(map[string]chan string),
 		redisClient: redis.NewClient(&redis.Options{
 			Addr:     "localhost:6379",
@@ -34,46 +51,35 @@ func main() {
 			DB:       1,  // 选择相应的数据库
 		}),
 	}
+}
 
+// httpServer 注册 SSE 事件流处理器 http服务
+func httpServer(w http.ResponseWriter, r *http.Request) {
 	// 创建 SSE 事件流处理器
-	sseHandler := func(w http.ResponseWriter, r *http.Request) {
-		// 获取用户ID，假设从查询参数中获取，你可以根据实际情况修改
-		userID := r.URL.Query().Get("user")
+	// 获取用户ID，假设从查询参数中获取，你可以根据实际情况修改
+	userID := r.URL.Query().Get("user")
 
-		// 设置响应头，表明服务器支持 SSE
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+	// 设置响应头，表明服务器支持 SSE
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-		// 创建 SSE 连接通道
-		messageChan := make(chan string)
+	// 创建 SSE 连接通道
+	messageChan := make(chan string)
 
-		// 注册 SSE 连接通道
-		sseServer.registerConnection(userID, messageChan)
-		defer sseServer.unregisterConnection(userID)
+	// 注册 SSE 连接通道
+	_sseServer.registerConnection(userID, messageChan)
+	defer _sseServer.unregisterConnection(userID)
 
-		// 推送消息给客户端
-		for msg := range messageChan {
-			// 将消息发送给客户端
-			fmt.Fprintf(w, "data: %s\n\n", msg)
-			// 刷新 SSE 连接，确保消息立即发送给客户端
-			w.(http.Flusher).Flush()
-		}
+	// 推送消息给客户端
+	for msg := range messageChan {
+		// 将消息发送给客户端
+		fmt.Fprintf(w, "data: %s\n\n", msg)
+		// 刷新 SSE 连接，确保消息立即发送给客户端
+		w.(http.Flusher).Flush()
 	}
 
-	// 注册 SSE 事件流处理器
-	http.HandleFunc("/", sseHandler)
-
-	// 启动订阅 Redis 频道并处理消息
-	go sseServer.subscribeRedisChannel()
-
-	// 定时推送空数据到客户端
-	go sseServer.timedPush()
-
-	// 启动服务器
-	log.Println("SSE server is running on :8085")
-	log.Fatal(http.ListenAndServe(":8085", nil))
 }
 
 // 注册 SSE 连接
