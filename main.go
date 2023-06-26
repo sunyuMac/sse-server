@@ -129,7 +129,7 @@ func (s *SSEServer) subscribeRedisChannel() {
 
 // 定时给客户端推送空消息，保持连接
 func (s *SSEServer) timedPush() {
-	// 我们设置的服务器响应超时时间为5分钟，保险起见，每1分钟给客户端推一次空消息用来保持连接
+	// 我们设置的服务器响应超时时间为5分钟，保险起见，每3分钟给客户端推一次空消息用来保持连接
 	for key := range s.connections {
 		// 发送消息给指定用户
 		jsonByte, _ := json.Marshal(Message{
