@@ -107,10 +107,10 @@ func (s *SSEServer) sendMessageToUser(userID, message string) {
 	if userMap, ok := s.connections[userID]; ok {
 
 		for _, conn := range userMap {
+			//打印发出的消息
+			fmt.Println(message)
 			conn <- message
 		}
-		//打印发出的消息
-		fmt.Println(message)
 	}
 }
 
@@ -140,7 +140,7 @@ func (s *SSEServer) timedPush() {
 		})
 		s.sendMessageToUser(key, string(jsonByte))
 	}
-	time.Sleep(3 * time.Minute)
+	time.Sleep(3 * time.Second)
 
 	s.timedPush()
 }
